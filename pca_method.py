@@ -14,20 +14,16 @@ def do_pca(n_components, data):
     variance_score = sum(pca.explained_variance_ratio_[0:6])
     return pca, X_pca, variance_score
 
-pca = PCA(100)
-X_pca_train = pca.fit_transform(data['current'][data['train_ix']])[0:6]
+pca = PCA(n_components=6)
+X_pca_train = pca.fit_transform(data['current'][data['train_ix']])
 var = pca.explained_variance_ratio_
 sum(pca.explained_variance_ratio_[0:6])
 
-pca = PCA(100)
-X_pca_test = pca.fit_transform(data['current'][data['test_ix']])[0:6]
+X_pca_test = pca.transform(data['current'][data['test_ix']])
+X_pca_val = pca.fit_transform(data['current'][data['val']])
 
-
-pca = PCA(100)
-X_pca_val = pca.fit_transform(data['current'][data['val']])[0:6]
-
-scan_rate = np.reshape(data['v'][0:6], (-1, 1))
-concentration = np.reshape(data['c'][0:6], (-1, 1))
+scan_rate_train = np.reshape(data['v'][data['train_ix'], (-1, 1))
+concentration_train = np.reshape(data['c'][data['train_ix'], (-1, 1))
 
 m = np.append(X_pca_train, scan_rate, axis=1)
 m.shape

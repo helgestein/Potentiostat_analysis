@@ -59,14 +59,15 @@ k0_train = np.reshape(data['k0'][data['train_ix']], (-1, 1))
 kc_train = np.reshape(data['kc'][data['train_ix']], (-1, 1))
 D_train = np.reshape(data['d'][data['train_ix']], (-1, 1))
 
-y= np.array([k0_train,kc_train,D_train])
+y_train = np.append(np.append(k0_train, kc_train, axis= 1), D_train, axis = 1)
 
 
-train_y = scaling.fit_transform(D_train)
+train_y = scaling.fit_transform(y_train)
 
 k0_test = np.reshape(data['k0'][data['test_ix']], (-1, 1))
 kc_test = np.reshape(data['kc'][data['test_ix']], (-1, 1))
 D_test = np.reshape(data['d'][data['test_ix']], (-1, 1))
 
-test_y = scaling.transform(D_test)
+y_test = np.append(np.append(k0_test, kc_test, axis= 1), D_test, axis= 1)
+test_y = scaling.transform(y_test)
 

@@ -2,13 +2,8 @@ from sklearn.preprocessing import QuantileTransformer
 import numpy as np
 from sklearn.decomposition import PCA
 import pickle
-import matplotlib.pyplot as plt
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.multioutput import MultiOutputRegressor
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-
-data = pickle.load(open('C:/Users/Fuzhi/OneDrive/Share_folder/data/data.pck','rb'))
+data = pickle.load(open(r'C:\Users\Helge\OneDrive\Documents\Literatur\Share_Literatur\data\data.pck','rb'))
 
 
 def do_pca(n_components, data):
@@ -31,7 +26,6 @@ concentration_train = np.reshape(data['c'][data['train_ix']], (-1,1))
 
 train_x = np.append(np.append(X_pca_train, scan_rate_train, axis=1), concentration_train, axis=1)
 
-print(train_x)
 
 #validation data
 
@@ -60,30 +54,48 @@ test_x = np.append(np.append(X_pca_test, scan_rate_test, axis= 1), concentration
 scaling = QuantileTransformer(n_quantiles=1000, random_state=0)
 
 
-k0_train = np.reshape(data['k0'][data['train_ix']], (-1, 1))
-kc_train = np.reshape(data['kc'][data['train_ix']], (-1, 1))
-D_train = np.reshape(data['d'][data['train_ix']], (-1, 1))
+k0_train = data['k0'][data['train_ix']]
+kc_train = data['kc'][data['train_ix']]
+D_train = data['d'][data['train_ix']]
 
-y_train = np.append(np.append(k0_train, kc_train, axis= 1), D_train, axis = 1)
+y= np.array([k0_train,kc_train,D_train])
+train_y = scaling.fit_transform(y.T)
 
+k0_test = data['k0'][data['test_ix']]
+kc_test = data['kc'][data['test_ix']]
+D_test = data['d'][data['test_ix']]
 
-train_y = scaling.fit_transform(y_train)
-
-k0_test = np.reshape(data['k0'][data['test_ix']], (-1, 1))
-kc_test = np.reshape(data['kc'][data['test_ix']], (-1, 1))
-D_test = np.reshape(data['d'][data['test_ix']], (-1, 1))
-
-y_test = np.append(np.append(k0_test, kc_test, axis= 1), D_test, axis= 1)
-test_y = scaling.transform(y_test)
+yt = np.array([k0_test,kc_test,D_test])
+test_y = scaling.transform(yt.T)
 
 
-max_depth = 20
+k0_val = data['k0'][data['val']]
+kc_val = data['kc'][data['val']]
+D_val = data['d'][data['val']]
 
-MultiRFRegression = MultiOutputRegressor(RandomForestRegressor(n_estimators= 50, max_depth=max_depth,random_state=2))
+yv = np.array([k0_test,kc_test,D_test])
+val_y = scaling.transform(yv.T)
+
+
+
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.multioutput import MultiOutputRegressor
+MultiRFRegression = MultiOutputRegressor(RandomForestRegressor(n_estimators= 50, max_depth=30,random_state=2))
 MultiRFRegression.fit(train_x, train_y)
-
 y_predict = MultiRFRegression.predict(test_x)
 
-# print('Accuracy score: ', format(accuracy_score(y_test, y_predict)))
 
-print('F1 score: ', format(f1_score(y_test, y_predict))
+import xgboost as xgb
+xg_reg = xgb.XGBRegressor(objective ='reg:squarederror',
+                          colsample_bytree = 0.3,
+                          learning_rate = 0.1,
+                          max_depth = 30,
+                          alpha = 10,
+                          n_estimators = 50,
+                          verbose=-1)
+xg_reg.fit(train_x,train_y)
+pred_y = xg_reg.predict(test_x)
+
+plt.hist2d(test_y[:,0],pred_y)
+plt.show()

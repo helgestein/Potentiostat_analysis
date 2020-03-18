@@ -2,6 +2,11 @@ from sklearn.preprocessing import QuantileTransformer
 import numpy as np
 from sklearn.decomposition import PCA
 import pickle
+import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.multioutput import MultiOutputRegressor
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
 
 data = pickle.load(open('C:/Users/Fuzhi/OneDrive/Share_folder/data/data.pck','rb'))
 
@@ -71,3 +76,14 @@ D_test = np.reshape(data['d'][data['test_ix']], (-1, 1))
 y_test = np.append(np.append(k0_test, kc_test, axis= 1), D_test, axis= 1)
 test_y = scaling.transform(y_test)
 
+
+max_depth = 20
+
+MultiRFRegression = MultiOutputRegressor(RandomForestRegressor(n_estimators= 50, max_depth=max_depth,random_state=2))
+MultiRFRegression.fit(train_x, train_y)
+
+y_predict = MultiRFRegression.predict(test_x)
+
+# print('Accuracy score: ', format(accuracy_score(y_test, y_predict)))
+
+print('F1 score: ', format(f1_score(y_test, y_predict))

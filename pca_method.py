@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error as mse
+from sklearn.preprocessing import MaxAbsScaler
 import xgboost as xgb
 import random
 
@@ -118,20 +119,14 @@ k0_new = test_y[:,0][test_indices]
 d_new = test_y[:,2][test_indices]
 
 
+
 #plotting the new data
 current_new = []
 potential_new = []
-for i in range(10):
+for i in range(100):
     current_new.append(data['current'][global_indices[i]])
     potential_new.append(data['potential'][global_indices[i]])
-'''
-fig, ax = plt.subplots(3, 3)
-ax = ax.flatten()
-for i in range(9):
-    ax[i].plot(potential_new[i],current_new[i])
-    ax[i].axis('off')
-plt.show()
-'''
+
 # getting the index and investigating regarding the data'value
 indices_pred =np.where((y_predict[:, 1] > 0.79) & (y_predict[:, 1] < 0.91))
 
@@ -144,21 +139,16 @@ global_pred_indices = np.random.choice(data['test_ix'][indices_pred] ,size = 100
 #plotting the new data
 current_pred_new = []
 potential_pred_new = []
-for i in range(10):
+for i in range(100):
     current_pred_new.append(data['current'][global_pred_indices[i]])
     potential_pred_new.append(data['potential'][global_pred_indices[i]])
 
 
-fig, ax = plt.subplots(3, 3)
+fig, ax = plt.subplots(10, 10)
 ax = ax.flatten()
-for i in range(9):
-    ax[i].plot(potential_pred_new[i], current_pred_new[i])
-    ax[i].plot(potential_new[i], current_new[i])
+for i in range(100):
+    ax[i].plot(potential_pred_new[i], current_pred_new[i]/(np.max(np.abs(current_pred_new[i]))))
+    ax[i].plot(potential_new[i], current_new[i]/np.max(np.abs(current_new[i])))
     ax[i].axis('off')
 plt.show()
 
-# train data
-pca = PCA(n_components=6)
-X_test = pca.fit_transform(data['current'][data['test_ix']])
-# var = pca.explained_variance_ratio_
-print(sum(pca.explained_variance_ratio_[0:6]))

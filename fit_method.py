@@ -8,7 +8,7 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.metrics import r2_score
 from simulate_cyclic_voltammetry import sim_cv, run
 
-data = pickle.load(open('C:/Users/Fuzhi/OneDrive/Share_folder/data/data.pck', 'rb'))
+data = pickle.load(open(r'C:\Users\Helge\Documents\data\data.pck', 'rb'))
 
 # train data
 pca = PCA(n_components=6)
@@ -61,62 +61,79 @@ yv = np.array([k0_test, kc_test, D_test])
 val_y = scaling.transform(yv.T)
 
 # multi random forest regression model
-MultiRFRegression = MultiOutputRegressor(RandomForestRegressor(n_estimators=50, max_depth=45, min_samples_split=3, random_state=3))
+MultiRFRegression = MultiOutputRegressor(RandomForestRegressor(n_estimators=50,
+                                                               max_depth=45,
+                                                               min_samples_split=3,
+                                                               random_state=3))
 MultiRFRegression.fit(train_x, train_y)
 # MultiRFRegression.feature_importances_
 y_predict = MultiRFRegression.predict(test_x)
+
 
 for i in range(3):
     print(r2_score(test_y[:, i], y_predict[:, i]))
     # print(mse(test_y[:, i], y_predict[:, i]))
     plt.figure(figsize=(5,5))
     plt.hist2d(test_y[:,i], y_predict[:,i], bins= 10)
-    #plt.hist2d(train_x[:,i], train_y[:,i], bins= 10)
-    #plt.hist2d(test_y[:, 0], test_y[:, 1], edgecolor='k', label="Data")
-    #plt.hist2d(y_predict[:, 0], y_predict[:, 1], edgecolor='k', label="Multi RF score=%.2f" % r2_score(test_y, y_predict))
     plt.xlim([0, 1.5])
     plt.ylim([0, 1.5])
     plt.axis('equal')
+    plt.xlabel('Real')
+    plt.ylabel('Prediced')
     plt.show()
 
 # getting the index and investigating regarding the data'value
 test_indices = np.where((test_y[:, 1] > 0.79) & (test_y[:, 1] < 0.91))[0]
-global_test_indices = np.random.choice(test_indices, 100, replace=False)
+#Issue 1: global indices are w.r.t. data
+#global_test_indices = np.random.choice(test_indices, 100, replace=False)
+global_test_indices = np.random.choice(data['test_ix'][test_indices], 100, replace=False)
 
 # evaluating the data correspond to their indices
-kc_test_new = test_y[:,1][global_test_indices]
-k0_test_new = test_y[:,0][global_test_indices]
-d_test_new = test_y[:,2][global_test_indices]
+#isue 1.1: this way we are actually using the global indices
+#this is a less error prone method I believe
+kc_test_new = data['kc'][global_test_indices]
+k0_test_new = data['k0'][global_test_indices]
+d_test_new = data['d'][global_test_indices]
+#these were missing for the simulation in line 120:
+v_test_new = data['v'][global_test_indices]
+c_test_new = data['c'][global_test_indices]
 
 # creating current and potential of the corresponding indices of kc
-current_test = []
-potential_test = []
+#current_test = []
+#potential_test = []
 current_test = data['current'][data['test_ix']]
 potential_test = data['potential'][data['test_ix']]
-global_current_test = current_test[global_test_indices]
-global_potential_test = potential_test[global_test_indices]
-
+#issue 2: here you mixed up global and test indices
+#global_current_test = current_test[global_test_indices]
+#global_potential_test = potential_test[global_test_indices]
+global_current_test = data['current'][data['test_ix']][test_indices]
+global_potential_test = data['current'][data['test_ix']][test_indices]
 
 
 ### New simulation of Current and Potential
 result_test = []
 for i in range(len(k0_test_new)):
     print(i)
-    result_test.append(run(1E-3, k0_test_new[i], kc_test_new[i], 1.0, d_test_new[i]))
+    #issue 3: you are running run with a fixed sweep rate which is not the case
+    #looking at line 19 you can see that this is an input parameter just likie D
+    #which here is also constant though it should not
+    #result_test.append(run(1E-3, k0_test_new[i], kc_test_new[i], 1.0, d_test_new[i]))
+    result_test.append(run(v_test_new[i], k0_test_new[i], kc_test_new[i], c_test_new[i], d_test_new[i]))
 
-
+#I have not looked further but I see issues continuing
 # getting the index and investigating regarding the prediction data'value
 predict_indices = np.where((y_predict[:, 1] > 0.79) & (y_predict[:, 1] < 0.91))[0]
 global_predict_indices = np.random.choice(predict_indices, 100, replace=False)
 
 # evaluating the data correspond to their indices
-kc_predict_new = y_predict[:,1][global_predict_indices]
-k0_predict_new = y_predict[:,0][global_predict_indices]
-d_predict_new = y_predict[:,2][global_predict_indices]
+kc_predict_new = y_predict[:,1][global_predict_indices]#see issue 1 and 1.1
+k0_predict_new = y_predict[:,0][global_predict_indices]#see issue 1 and 1.1
+d_predict_new = y_predict[:,2][global_predict_indices]#see issue 1 and 1.1
 
 result_predict = []
 for i in range(len(kc_predict_new)):
     print(i)
+    #see issue 3
     result_predict.append(run(1E-3, k0_predict_new[i], kc_predict_new[i], 1.0, d_predict_new[i]))
 
 fig, ax= plt.subplots(10, 10)

@@ -17,29 +17,21 @@ X_pca_train = pca.fit_transform(data['current'][data['train_ix']])
 sum(pca.explained_variance_ratio_[0:6])
 
 scan_rate_train = np.reshape(data['v'][data['train_ix']], (-1, 1))
-
 concentration_train = np.reshape(data['c'][data['train_ix']], (-1, 1))
-
 train_x = np.append(np.append(X_pca_train, scan_rate_train, axis=1), concentration_train, axis=1)
 
 # validation data
 
 X_pca_val = pca.transform(data['current'][data['val']])
-
 scan_rate_val = np.reshape(data['v'][data['val']], (-1, 1))
-
 concentration_val = np.reshape(data['c'][data['val']], (-1, 1))
-
 val_x = np.append(np.append(X_pca_val, scan_rate_val, axis=1), concentration_val, axis=1)
 
 # test data
 
 X_pca_test = pca.transform(data['current'][data['test_ix']])
-
 scan_rate_test = np.reshape(data['v'][data['test_ix']], (-1, 1))
-
 concentration_test = np.reshape(data['c'][data['test_ix']], (-1, 1))
-
 test_x = np.append(np.append(X_pca_test, scan_rate_test, axis=1), concentration_test, axis=1)
 
 # prediction
@@ -92,80 +84,48 @@ test_indices = np.where((test_y[:, 1] > 0.79) & (test_y[:, 1] < 0.91))[0]
 global_test_indices = np.random.choice(test_indices, 100, replace=False)
 
 # evaluating the data correspond to their indices
+kc_test_new = test_y[:,1][global_test_indices]
+k0_test_new = test_y[:,0][global_test_indices]
+d_test_new = test_y[:,2][global_test_indices]
 
-# kc_test_new = test_y[:,1][test_indices]
-kc_test_new = data['kc'][global_test_indices]
-# k0_test_new = test_y[:,0][test_indices]
-k0_test_new = data['k0'][global_test_indices]
-# d_test_new = test_y[:,2][test_indices]
-d_test_new = data['d'][global_test_indices]
-
-
+# creating current and potential of the corresponding indices of kc
 current_test = []
 potential_test = []
-for i in range(100):
-    current_test.append(data['current'][global_test_indices[i]])
-    potential_test.append(data['potential'][global_test_indices[i]])
+current_test = data['current'][data['test_ix']]
+potential_test = data['potential'][data['test_ix']]
+global_current_test = current_test[global_test_indices]
+global_potential_test = potential_test[global_test_indices]
 
 
-# taking the new simulation for the test data
-e1, z1, t1 = [], [], []
-for i in range(100):
-    conf = {'C': 1.0,  # mol/cm^3, initial concentration of O. Default = 1.0
-            'D': d_test_new[i],  # cm^2/s, O & R diffusion coefficient. Default = 1E-5
-            'etai': +0.5,  # V, initial overpotential (relative to redox potential). Default = +0.2
-            'etaf': -0.5,  # V, final overpotential (relative to redox potential). Default = -0.2
-            'v': 1E-3,  # V/s, sweep rate. Default = 1E-3
-            'n': 1.0,  # number of electrons transfered. Default = 1
-            'alpha': 0.5,  # dimensionless charge-transfer coefficient. Default = 0.5
-            'k0': k0_test_new[i],  # cm/s, electrochemical rate constant. Default = 1E-2
-            'kc': kc_test_new[i],  # 1/s, chemical rate constant. Default = 1E-3
-            'T': 298.15,  # K, temperature. Default = 298.15
-            }
-    e, z, t = sim_cv(conf)
-    e1.append(e)
-    z1.append(z)
-    t1.append(t)
+
+### New simulation of Current and Potential
+result_test = []
+for i in range(len(k0_test_new)):
+    print(i)
+    result_test.append(run(1E-3, k0_test_new[i], kc_test_new[i], 1.0, d_test_new[i]))
+
 
 # getting the index and investigating regarding the prediction data'value
-
-indices_pred = np.where((y_predict[:, 1] > 0.79) & (y_predict[:, 1] < 0.91))[0]
-global_pred_indices = np.random.choice(indices_pred, size=100, replace=False)
+predict_indices = np.where((y_predict[:, 1] > 0.79) & (y_predict[:, 1] < 0.91))[0]
+global_predict_indices = np.random.choice(predict_indices, 100, replace=False)
 
 # evaluating the data correspond to their indices
-kc_predict = y_predict[:, 1][global_pred_indices]
-k0_predict = y_predict[:, 0][global_pred_indices]
-d_predict = y_predict[:, 2][global_pred_indices]
+kc_predict_new = y_predict[:,1][global_predict_indices]
+k0_predict_new = y_predict[:,0][global_predict_indices]
+d_predict_new = y_predict[:,2][global_predict_indices]
 
-'''
-current_pred = []
-potential_pred = []
-for i in range(100):
-    current_pred.append(data['current'][global_pred_indices[i]])
-    potential_pred.append(data['potential'][global_pred_indices[i]])
-
-fig, ax = plt.subplots(10, 10)
-ax = ax.flatten()
-for i in range(100):
-    ax[i].plot(potential_pred[i], current_pred[i]/(np.max(np.abs(current_pred[i]))))
-    ax[i].plot(potential_test[i], current_test[i]/np.max(np.abs(current_test[i])))
-    ax[i].axis('off')
-plt.show()
-'''
-
-# taking the new simulation for the prediction data
-
-pred_simulation = []
-for i in range(len(kc_predict)):
-    pred_simulation.append(run(1E-3, k0_predict[i], kc_predict[i], 1.0, d_predict[i]))
+result_predict = []
+for i in range(len(kc_predict_new)):
+    print(i)
+    result_predict.append(run(1E-3, k0_predict_new[i], kc_predict_new[i], 1.0, d_predict_new[i]))
 
 fig, ax= plt.subplots(10, 10)
 ax = ax.flatten()
 for i in range(100):
-    np.nan_to_num(pred_simulation[i][1], copy=False)
-    #np.seterr(divide='ignore', invalid='ignore')
-    ax[i].plot(e1[i], z1[i] / (np.max(np.abs(z1[i]))))
-    ax[i].plot(pred_simulation[i][0], pred_simulation[i][1]/np.max(np.abs(pred_simulation[i][1])))
-    ax[i].plot(potential_test[i], current_test[i]/np.max(np.abs(current_test[i])))
+    np.nan_to_num(result_predict[i][1], copy=False)
+    np.nan_to_num(result_test[i][1], copy=False)
+    ax[i].plot(result_test[i][0], result_test[i][1] / (np.max(np.abs(result_test[i][1]))))
+    ax[i].plot(result_predict[i][0], result_predict[i][1]/np.max(np.abs(result_predict[i][1])))
+    #ax[i].plot(potential_test[i], current_test[i]/np.max(np.abs(current_test[i])))
     ax[i].axis('off')
 plt.show()
